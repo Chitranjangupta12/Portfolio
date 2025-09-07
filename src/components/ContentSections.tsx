@@ -6,7 +6,7 @@ const ContentSections = () => {
     {
       title: 'E-Commerce Web App',
       description: 'Full-stack shopping platform with payment integration and user authentication.',
-      tech: 'React • Node.js • MongoDB'
+      tech: 'Html • Css • JavaScript'
     },
     {
       title: 'Task Management System',
@@ -23,7 +23,7 @@ const ContentSections = () => {
   const achievements = [
     {
       title: 'LeetCode Problems Solved',
-      description: '300+ coding problems across various difficulty levels',
+      description: '150+ coding problems across various difficulty levels',
       icon: Trophy
     },
     {
@@ -66,8 +66,10 @@ const ContentSections = () => {
               <p className="text-muted-foreground text-sm mb-3">{project.description}</p>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-accent font-medium">{project.tech}</span>
-                <button className="text-primary hover:text-primary-glow text-sm font-medium">
-                  View Project →
+                <button 
+                  onClick={() => window.open("https://github.com/Chitranjangupta12", "_blank")}
+                  className="text-primary hover:text-primary-glow text-sm font-medium">
+                 View Project →
                 </button>
               </div>
             </div>
