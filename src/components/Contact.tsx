@@ -13,6 +13,7 @@ export const Contact: React.FC = () => {
 
   const [errors, setErrors] = useState<{ name?: string; email?: string; message?: string }>({});
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const [copiedEmail, setCopiedEmail] = useState(false);
 
   const validate = () => {
@@ -37,21 +38,85 @@ export const Contact: React.FC = () => {
     if (!validate()) return;
 
     setStatus('loading');
+    setErrorMessage('');
 
-    setTimeout(() => {
-      setStatus('success');
-      try {
-        confetti({
-          particleCount: 80,
-          spread: 70,
-          origin: { y: 0.7 },
-          colors: ['#ff6b00', '#ff9248', '#ffffff', '#fb923c'],
+    try {
+      // Configurable endpoint: Formspree ID or custom endpoint via env, with secure default
+      const formspreeId = import.meta.env.VITE_FORMSPREE_FORM_ID;
+      const customEndpoint = import.meta.env.VITE_CONTACT_ENDPOINT;
+
+      let response: Response;
+
+      if (customEndpoint) {
+        response = await fetch(customEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
+            name: formData.name.trim(),
+            email: formData.email.trim(),
+            message: formData.message.trim(),
+            recipient: profileConfig.email,
+          }),
         });
-      } catch {
-        // Safe fallback
+      } else if (formspreeId) {
+        response = await fetch(`https://formspree.io/f/${formspreeId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
+            name: formData.name.trim(),
+            email: formData.email.trim(),
+            message: formData.message.trim(),
+          }),
+        });
+      } else {
+        // Production-ready submission using FormSubmit.co standard AJAX API directed directly to Chitranjan's email
+        response = await fetch(`https://formsubmit.co/ajax/${profileConfig.email}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
+            name: formData.name.trim(),
+            email: formData.email.trim(),
+            message: formData.message.trim(),
+            _subject: `New Portfolio Inquiry from ${formData.name.trim()}`,
+            _template: 'table',
+            _captcha: 'false',
+          }),
+        });
       }
-      setFormData({ name: '', email: '', message: '' });
-    }, 1100);
+
+      const result = await response.json().catch(() => ({}));
+
+      if (response.ok && (result.success === 'true' || result.success === true || result.ok || response.status === 200)) {
+        setStatus('success');
+        try {
+          confetti({
+            particleCount: 80,
+            spread: 70,
+            origin: { y: 0.7 },
+            colors: ['#ff6b00', '#ff9248', '#ffffff', '#fb923c'],
+          });
+        } catch {
+          // Safe fallback
+        }
+        setFormData({ name: '', email: '', message: '' });
+      } else {
+        throw new Error(result.message || 'Failed to transmit message. Please try again or email directly.');
+      }
+    } catch (err: any) {
+      setStatus('error');
+      setErrorMessage(
+        err?.message || 'Transmission error. Please try again or click the direct email link on the left.'
+      );
+    }
   };
 
   const copyEmailToClipboard = () => {
@@ -250,10 +315,10 @@ export const Contact: React.FC = () => {
                       <Check className="w-7 h-7" />
                     </div>
                     <h3 className="font-heading font-black text-2xl text-white">
-                      Message Received!
+                      Message Sent Successfully!
                     </h3>
                     <p className="text-slate-300 text-sm max-w-md mx-auto leading-relaxed">
-                      Thank you for reaching out. Chitranjan has received your dispatch and will respond shortly.
+                      Thank you for reaching out. Your message has been dispatched to Chitranjan's inbox and he will respond shortly.
                     </p>
                     <button
                       onClick={() => setStatus('idle')}
@@ -270,6 +335,15 @@ export const Contact: React.FC = () => {
                     onSubmit={handleSubmit}
                     className="space-y-5"
                   >
+                    {status === 'error' && errorMessage && (
+                      <div className="p-3.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 flex items-start gap-2.5 text-xs font-mono">
+                        <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold block">Transmission Failed</span>
+                          <span>{errorMessage}</span>
+                        </div>
+                      </div>
+                    )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                       {/* Name Input */}
                       <div className="space-y-1.5">
